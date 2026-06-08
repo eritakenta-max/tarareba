@@ -35,9 +35,6 @@ textarea,input{font-family:inherit;outline:none;-webkit-appearance:none}
 .home-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:44px 22px 28px}
 .home-topbar{width:100%;display:flex;justify-content:space-between;align-items:center}
 .pill-btn{font-size:12px;font-weight:700;padding:6px 14px;border-radius:99px;border:2px solid #0F172A;color:#0F172A;background:transparent}
-.home-logo{text-align:center}
-.home-logo h1{font-size:50px;font-weight:900;color:#0F172A;letter-spacing:-2px;line-height:1}
-.home-logo p{font-size:12px;color:#94a3b8;margin-top:5px;font-weight:500}
 .question-card{width:100%;border-radius:24px;padding:18px 20px;background:#fff8e8;border:2px solid rgba(234,179,8,.22);text-align:center}
 .question-card h2{font-size:19px;font-weight:900;color:#0F172A;margin-bottom:4px}
 .question-card p{font-size:12px;color:#94a3b8}
@@ -97,7 +94,6 @@ textarea,input{font-family:inherit;outline:none;-webkit-appearance:none}
 .ach-card{width:100%;border-radius:22px;padding:18px;background:#fff;border:1px solid rgba(15,23,42,.06);box-shadow:0 2px 10px rgba(0,0,0,.04);text-align:center}
 .ach-goalname{font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:3px}
 .ach-big{font-size:50px;font-weight:900;color:#0F172A;line-height:1}
-.ach-up{font-size:11px;font-weight:700;color:#22c55e;margin-top:4px}
 .home-btn{width:100%;padding:16px;border-radius:20px;font-size:15px;font-weight:900;background:#EAB308;color:#0F172A;transition:transform .1s}
 .home-btn:active{transform:scale(.96)}
 .rep-body{flex:1;display:flex;flex-direction:column;padding:28px 20px 32px}
@@ -122,6 +118,18 @@ textarea,input{font-family:inherit;outline:none;-webkit-appearance:none}
 .empty-msg{text-align:center;padding:28px;color:#94a3b8;font-size:14px}
 .reset-btn{width:100%;margin-top:24px;padding:14px;border-radius:18px;background:#fff;border:2px solid rgba(239,68,68,.3);color:#ef4444;font-size:14px;font-weight:700;transition:transform .1s}
 .reset-btn:active{transform:scale(.96)}
+.next-goal-btn{width:100%;padding:15px;border-radius:20px;font-size:15px;font-weight:900;background:linear-gradient(135deg,#EAB308,#f59e0b);color:#0F172A;margin-bottom:10px;box-shadow:0 4px 14px rgba(234,179,8,.35);transition:transform .1s}
+.next-goal-btn:active{transform:scale(.96)}
+.acv-section{margin-top:22px}
+.acv-h{font-size:15px;font-weight:700;color:#0F172A;margin-bottom:11px}
+.acv-item{border-radius:16px;padding:13px 14px;background:linear-gradient(135deg,#fff8e8,#fffdf5);border:1.5px solid rgba(234,179,8,.3);box-shadow:0 1px 4px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.acv-ico{font-size:28px;line-height:1;flex-shrink:0}
+.acv-info{flex:1;min-width:0}
+.acv-name{font-size:14px;font-weight:700;color:#0F172A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acv-meta{font-size:11px;color:#94a3b8;margin-top:2px}
+.acv-amt{font-size:15px;font-weight:900;color:#EAB308;white-space:nowrap}
+.acv-del{font-size:18px;background:transparent;color:#cbd5e1;padding:4px 6px;border-radius:8px;flex-shrink:0;transition:color .15s}
+.acv-del:active{color:#ef4444}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade-up{animation:fadeUp .35s ease forwards}
 </style>
@@ -130,7 +138,7 @@ textarea,input{font-family:inherit;outline:none;-webkit-appearance:none}
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useRef}=React;
-const CREAM='#FDF6E3',NAVY='#0F172A',YELLOW='#EAB308';
+const NAVY='#0F172A',YELLOW='#EAB308';
 const LS_KEY='tarareba_v1';
 const CATS=[
   {id:'drinking',label:'飲み会',ico:'🍺'},
@@ -206,28 +214,17 @@ function PlantBox({pct,showBar=true}){
     </div>
   );
 }
-
-/* ─── LocalStorage helpers ─── */
-function lsLoad(){
-  try{
-    const d=localStorage.getItem(LS_KEY);
-    if(d)return JSON.parse(d);
-  }catch(e){}
-  return null;
-}
-function lsSave(data){
-  try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}
-}
+function lsLoad(){try{const d=localStorage.getItem(LS_KEY);if(d)return JSON.parse(d);}catch(e){}return null;}
+function lsSave(data){try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}}
 
 function App(){
-  /* LSからの初期値 */
   const saved=lsLoad();
   const hasGoal=saved&&saved.goal&&saved.goal.amount>0;
-
   const [screen,setScreen]=useState(hasGoal?'home':'setup');
   const [goal,setGoal]=useState(saved&&saved.goal?saved.goal:{name:'',amount:0});
   const [goalIn,setGoalIn]=useState(saved&&saved.goal&&saved.goal.name?{name:saved.goal.name,amount:String(saved.goal.amount)}:{name:'',amount:''});
   const [records,setRecords]=useState(saved&&saved.records?saved.records:[]);
+  const [achieved,setAchieved]=useState(saved&&saved.achieved?saved.achieved:[]);
   const [emotion,setEmotion]=useState(null);
   const [category,setCategory]=useState(null);
   const [reason,setReason]=useState(null);
@@ -237,8 +234,8 @@ function App(){
   const [pendingId,setPendingId]=useState(null);
   const nid=useRef(saved&&saved.nid?saved.nid:10);
 
-  /* goal・records変更時にLS保存 */
-  useEffect(()=>{lsSave({goal,records,nid:nid.current});},[goal,records]);
+  function save(g,r,ac){lsSave({goal:g,records:r,achieved:ac,nid:nid.current});}
+  useEffect(()=>{save(goal,records,achieved);},[goal,records,achieved]);
 
   const satisfiedTotal=records.filter(r=>r.emotion==='satisfied').reduce((a,b)=>a+b.amount,0);
   const regretTotal=records.filter(r=>r.emotion==='regret').reduce((a,b)=>a+b.amount,0);
@@ -246,6 +243,7 @@ function App(){
   const heartTotal=satisfiedTotal+regretTotal;
   const satisfiedRatio=heartTotal>0?satisfiedTotal/heartTotal:0.5;
   const achievePct=goal.amount>0?Math.min(999,(futureTotal/goal.amount)*100):0;
+  const isAchieved=achievePct>=100;
 
   function doSetup(){
     if(!goalIn.name||!goalIn.amount)return;
@@ -267,18 +265,33 @@ function App(){
     const now=new Date();
     const date=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
     const rec={id,emotion,category,amount:parseInt(amtStr),reason:emotion==='regret'?reason:null,memo:'',date};
-    setRecords(r=>{const nr=[...r,rec];lsSave({goal,records:nr,nid:nid.current});return nr;});
+    setRecords(r=>{const nr=[...r,rec];save(goal,nr,achieved);return nr;});
     setPendingId(id);setMemo('');setMemoSaved(false);setScreen('complete');
   }
   function saveMemo(){
     if(pendingId===null)return;
-    setRecords(r=>{const nr=r.map(rec=>rec.id===pendingId?{...rec,memo}:rec);lsSave({goal,records:nr,nid:nid.current});return nr;});
+    setRecords(r=>{const nr=r.map(rec=>rec.id===pendingId?{...rec,memo}:rec);save(goal,nr,achieved);return nr;});
     setMemoSaved(true);
+  }
+  function startNextGoal(){
+    if(!window.confirm('現在の目標達成を記録して、新しい目標を設定しますか？'))return;
+    const now=new Date();
+    const date=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    const newAch=[{name:goal.name,amount:goal.amount,saved:futureTotal,date},...achieved].slice(0,100);
+    const newRecords=records.filter(r=>r.emotion!=='future');
+    const newGoal={name:'',amount:0};
+    setAchieved(newAch);setRecords(newRecords);setGoal(newGoal);
+    setGoalIn({name:'',amount:''});
+    save(newGoal,newRecords,newAch);
+    setScreen('setup');
+  }
+  function deleteAchieved(idx){
+    setAchieved(a=>{const na=a.filter((_,i)=>i!==idx);save(goal,records,na);return na;});
   }
   function resetAll(){
     if(!window.confirm('すべてのデータをリセットしますか？\n（この操作は元に戻せません）'))return;
     localStorage.removeItem(LS_KEY);
-    setRecords([]);setGoal({name:'',amount:0});setGoalIn({name:'',amount:''});
+    setRecords([]);setAchieved([]);setGoal({name:'',amount:0});setGoalIn({name:'',amount:''});
     setEmotion(null);setCategory(null);setReason(null);setAmtStr('');setMemo('');
     setMemoSaved(false);setPendingId(null);nid.current=10;setScreen('setup');
   }
@@ -327,28 +340,37 @@ function App(){
                 </div>
               )}
             </div>
-            <div className="question-card" style={{width:'100%'}}>
-              <h2>今日のあなたのお金は？</h2>
-              <p>使った気持ち、使わなかった選択をワンタップ。</p>
-            </div>
-            <div className="emotion-grid" style={{width:'100%'}}>
-              <button className="ebtn" style={{background:YELLOW}} onClick={()=>startFlow('satisfied')}>
-                <span className="eico">😊</span>
-                <span className="elbl" style={{color:NAVY}}>満足</span>
-                <span className="esub" style={{color:NAVY}}>いいお金の<br/>遣い方ができた！</span>
-              </button>
-              <button className="ebtn" style={{background:'#16a34a'}} onClick={()=>startFlow('future')}>
-                <span className="eico">🌱</span>
-                <span className="elbl" style={{color:'#fff'}}>未来</span>
-                <span className="esub" style={{color:'#fff'}}>我慢したお金は<br/>未来の自分へ</span>
-              </button>
-              <button className="ebtn" style={{background:NAVY}} onClick={()=>startFlow('regret')}>
-                <span className="eico">😟</span>
-                <span className="elbl" style={{color:'#fff'}}>後悔</span>
-                <span className="esub" style={{color:'#fff'}}>やってしまった...</span>
-              </button>
-            </div>
-            <p className="home-hint">😊 🌱 😟 をワンタップ</p>
+            {isAchieved?(
+              <div style={{width:'100%',textAlign:'center'}}>
+                <p style={{fontSize:13,color:'#94a3b8',marginBottom:10}}>🎉 目標を達成しました！</p>
+                <button className="next-goal-btn" onClick={startNextGoal}>🌟 新たな目標を設定する</button>
+              </div>
+            ):(
+              <>
+                <div className="question-card" style={{width:'100%'}}>
+                  <h2>今日のあなたのお金は？</h2>
+                  <p>使った気持ち、使わなかった選択をワンタップ。</p>
+                </div>
+                <div className="emotion-grid" style={{width:'100%'}}>
+                  <button className="ebtn" style={{background:YELLOW}} onClick={()=>startFlow('satisfied')}>
+                    <span className="eico">😊</span>
+                    <span className="elbl" style={{color:NAVY}}>満足</span>
+                    <span className="esub" style={{color:NAVY}}>いいお金の<br/>遣い方ができた！</span>
+                  </button>
+                  <button className="ebtn" style={{background:'#16a34a'}} onClick={()=>startFlow('future')}>
+                    <span className="eico">🌱</span>
+                    <span className="elbl" style={{color:'#fff'}}>未来</span>
+                    <span className="esub" style={{color:'#fff'}}>我慢したお金は<br/>未来の自分へ</span>
+                  </button>
+                  <button className="ebtn" style={{background:NAVY}} onClick={()=>startFlow('regret')}>
+                    <span className="eico">😟</span>
+                    <span className="elbl" style={{color:'#fff'}}>後悔</span>
+                    <span className="esub" style={{color:'#fff'}}>やってしまった...</span>
+                  </button>
+                </div>
+                <p className="home-hint">😊 🌱 😟 をワンタップ</p>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -455,6 +477,9 @@ function App(){
                   🎯 {goal.name} ¥{goal.amount.toLocaleString()} | 我慢総額 ¥{futureTotal.toLocaleString()} | <strong style={{color:NAVY}}>{achievePct.toFixed(1)}%達成</strong>
                 </p>
               )}
+              {isAchieved&&(
+                <button className="next-goal-btn" style={{marginTop:12}} onClick={startNextGoal}>🌟 新たな目標を設定する</button>
+              )}
             </div>
             <p className="rep-h">今月の感情バランス</p>
             <HeartChart ratio={satisfiedRatio}/>
@@ -487,6 +512,22 @@ function App(){
                 );
               })}
             </div>
+            {achieved.length>0&&(
+              <div className="acv-section">
+                <p className="acv-h">🏆 過去の達成記録（{achieved.length}件）</p>
+                {achieved.map((a,i)=>(
+                  <div key={i} className="acv-item">
+                    <span className="acv-ico">🌻</span>
+                    <div className="acv-info">
+                      <div className="acv-name">{a.name}</div>
+                      <div className="acv-meta">目標 ¥{a.amount.toLocaleString()} | 達成 {a.date}</div>
+                    </div>
+                    <span className="acv-amt">¥{a.saved.toLocaleString()}</span>
+                    <button className="acv-del" onClick={()=>deleteAchieved(i)}>🗑</button>
+                  </div>
+                ))}
+              </div>
+            )}
             <button className="reset-btn" onClick={resetAll}>🗑️ すべてのデータをリセット</button>
           </div>
         </div>
