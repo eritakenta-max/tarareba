@@ -167,7 +167,7 @@ const PLANT_STAGES=[
   {min:95,max:99,emo:'🪻',lv:'開花直前！',msg:'あと少し...！頑張れ！'},
   {min:100,max:9999,emo:'🌻',lv:'完全開花🎉',msg:'目標達成！おめでとう！'},
 ];
-function getPlantStage(p){return PLANT_STAGES.find(s=>p>=s.min&&p<=s.max)||PLANT_STAGES[0];}
+function getPlantStage(p){const f=Math.floor(p);return PLANT_STAGES.find(s=>f>=s.min&&f<=s.max)||PLANT_STAGES[0];}
 function HeartChart({ratio}){
   const p=Math.round(ratio*100),rp=100-p;
   return(
