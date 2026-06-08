@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080808">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="メモ">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23080808'/><text y='130' x='36' font-size='110' font-family='serif'>✎</text></svg>">
+  <title>メモ</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #080808;
+      --surface: #111111;
+      --border: #222222;
+      --text: #e8e8e8;
+      --muted: #404040;
+      --accent-copy: #00e5a0;
+      --accent-clear: #ff4757;
+      --accent-hist: #5b8dee;
+      --font-ui: 'JetBrains Mono', monospace;
+      --font-body: 'Noto Sans JP', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* ── ツールバー ── */
+    #toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: opacity 0.12s, transform 0.1s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .btn:active { opacity: 0.7; transform: scale(0.97); }
+
+    #btn-copy {
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.3);
+      color: var(--accent-copy);
+    }
+    #btn-clear {
+      background: rgba(255,71,87,0.1);
+      border: 1px solid rgba(255,71,87,0.3);
+      color: var(--accent-clear);
+    }
+    #btn-hist {
+      background: rgba(91,141,238,0.1);
+      border: 1px solid rgba(91,141,238,0.3);
+      color: var(--accent-hist);
+    }
+
+    /* ── テキストエリア ── */
+    #editor {
+      flex: 1;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 17px;
+      font-weight: 300;
+      line-height: 1.75;
+      letter-spacing: 0.02em;
+      padding: 18px 18px 40px;
+      caret-color: var(--accent-copy);
+      -webkit-overflow-scrolling: touch;
+    }
+    #editor::placeholder { color: var(--muted); }
+
+    /* ── 文字数カウンター ── */
+    #counter {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 12px);
+      right: 16px;
+      font-family: var(--font-ui);
+      font-size: 11px;
+      color: var(--muted);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ── トースト ── */
+    #toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 70px);
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(0,229,160,0.12);
+      border: 1px solid rgba(0,229,160,0.35);
+      color: var(--accent-copy);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      padding: 8px 18px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── 履歴パネル ── */
+    #hist-panel {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+    }
+    #hist-panel.open { display: flex; flex-direction: column; }
+
+    #hist-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+
+    #hist-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-radius: 18px 18px 0 0;
+      padding-bottom: env(safe-area-inset-bottom);
+      animation: slideUp 0.25s cubic-bezier(0.32,0.72,0,1);
+      max-height: 75dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    #hist-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 12px;
+      flex-shrink: 0;
+    }
+    #hist-header h2 {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-hist);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    #hist-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    /* ── 検索ボックス ── */
+    #hist-search-wrap {
+      padding: 0 20px 12px;
+      flex-shrink: 0;
+    }
+    #hist-search {
+      width: 100%;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0 12px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    #hist-search::placeholder { color: var(--muted); }
+
+    #hist-list {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+    }
+
+    .hist-item {
+      display: flex;
+      flex-direction: column;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .hist-item:active { background: rgba(255,255,255,0.04); }
+
+    .hist-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .hist-meta {
+      font-family: var(--font-ui);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .hist-del-btn {
+      background: none;
+      border: 1px solid rgba(255,71,87,0.3);
+      color: var(--accent-clear);
+      font-family: var(--font-ui);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.1s;
+    }
+    .hist-del-btn:active { background: rgba(255,71,87,0.12); }
+
+    .hist-preview {
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hist-empty {
+      padding: 40px 20px;
+      text-align: center;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <button class="btn" id="btn-copy">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      全コピ
+    </button>
+    <button class="btn" id="btn-clear">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      全消去
+    </button>
+    <button class="btn" id="btn-hist">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      履歴
+    </button>
+  </div>
+
+  <textarea id="editor" placeholder="メモを入力…" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  <div id="counter">0文字</div>
+</div>
+
+<!-- トースト -->
+<div id="toast"></div>
+
+<!-- 履歴パネル -->
+<div id="hist-panel">
+  <div id="hist-backdrop"></div>
+  <div id="hist-sheet">
+    <div id="hist-header">
+      <h2>履歴 — 最新100件</h2>
+      <button id="hist-close">×</button>
+    </div>
+    <div id="hist-search-wrap">
+      <input id="hist-search" type="search" placeholder="🔍 履歴を検索…">
+    </div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY        = 'memo_draft';
+  const HISTORY_KEY        = 'memoHistory';
+  const HISTORY_KEY_BACKUP = 'memoHistoryBackup';
+  const MAX_HIST           = 100;
+
+  const editor    = document.getElementById('editor');
+  const counter   = document.getElementById('counter');
+  const toast     = document.getElementById('toast');
+  const histPanel = document.getElementById('hist-panel');
+  const histList  = document.getElementById('hist-list');
+
+  // ── 履歴取得（バックアップ復元対応） ──
+  function getHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      if (raw) return JSON.parse(raw);
+      const backup = localStorage.getItem(HISTORY_KEY_BACKUP);
+      if (backup) {
+        const restored = JSON.parse(backup);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(restored));
+        return restored;
+      }
+      return [];
+    } catch {
+      try {
+        const backup = localStorage.getItem(HISTORY_KEY_BACKUP);
+        if (backup) return JSON.parse(backup);
+      } catch {}
+      return [];
+    }
+  }
+
+  // ── 履歴保存（バックアップ同時更新） ──
+  function pushHistory(text) {
+    if (!text.trim()) return;
+    const hist = getHistory().filter(h => h.text.trim() !== text.trim());
+    hist.unshift({ text, ts: Date.now() });
+    const next = hist.slice(0, MAX_HIST);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    localStorage.setItem(HISTORY_KEY_BACKUP, JSON.stringify(next));
+  }
+
+  // ── 個別削除 ──
+  function deleteHistory(ts) {
+    const hist = getHistory().filter(h => h.ts !== ts);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    localStorage.setItem(HISTORY_KEY_BACKUP, JSON.stringify(hist));
+  }
+
+  // ── 起動：常に空白 ──
+  editor.value = '';
+  localStorage.removeItem(STORAGE_KEY);
+  updateCounter();
+
+  // ── 自動フォーカス ──
+  window.addEventListener('load', () => { editor.focus(); });
+  document.addEventListener('touchend', () => { editor.focus(); }, { once: true });
+
+  // ── 入力→自動保存 ──
+  editor.addEventListener('input', () => {
+    localStorage.setItem(STORAGE_KEY, editor.value);
+    updateCounter();
+  });
+
+  function updateCounter() {
+    counter.textContent = editor.value.length + '文字';
+  }
+
+  // ── 全コピ ──
+  document.getElementById('btn-copy').addEventListener('click', async () => {
+    const text = editor.value;
+    if (!text) { showToast('テキストがありません'); return; }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('コピーしました ✓');
+    } catch {
+      editor.select();
+      document.execCommand('copy');
+      showToast('コピーしました ✓');
+    }
+  });
+
+  // ── 全消去 ──
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    if (!editor.value) return;
+    pushHistory(editor.value);
+    editor.value = '';
+    localStorage.removeItem(STORAGE_KEY);
+    updateCounter();
+    editor.focus();
+    showToast('消去 — 履歴に保存済み');
+  });
+
+  // ── 履歴パネル ──
+  document.getElementById('btn-hist').addEventListener('click', openHist);
+  document.getElementById('hist-close').addEventListener('click', closeHist);
+  document.getElementById('hist-backdrop').addEventListener('click', closeHist);
+  document.getElementById('hist-search').addEventListener('input', (e) => {
+    renderHistList(e.target.value);
+  });
+
+  function openHist() {
+    renderHistList('');
+    histPanel.classList.add('open');
+  }
+
+  function closeHist() {
+    histPanel.classList.remove('open');
+    const s = document.getElementById('hist-search');
+    if (s) s.value = '';
+  }
+
+  function renderHistList(query) {
+    const hist = getHistory();
+    histList.innerHTML = '';
+
+    const q = query.trim().toLowerCase();
+    const filtered = q ? hist.filter(h => h.text.toLowerCase().includes(q)) : hist;
+
+    // 新しい順
+    filtered.sort((a, b) => b.ts - a.ts);
+
+    if (!filtered.length) {
+      histList.innerHTML = `<div class="hist-empty">${q ? '該当する履歴がありません' : '履歴はまだありません'}</div>`;
+      return;
+    }
+
+    filtered.forEach((h) => {
+      const el = document.createElement('div');
+      el.className = 'hist-item';
+
+      // 日付フォーマット: 2026/06/06 09:15
+      const d = new Date(h.ts);
+      const label =
+        d.getFullYear() + '/' +
+        String(d.getMonth() + 1).padStart(2, '0') + '/' +
+        String(d.getDate()).padStart(2, '0') + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' +
+        String(d.getMinutes()).padStart(2, '0');
+
+      el.innerHTML = `
+        <div class="hist-meta-row">
+          <div class="hist-meta">${label} · ${h.text.length}文字</div>
+          <button class="hist-del-btn" data-ts="${h.ts}">🗑 削除</button>
+        </div>
+        <div class="hist-preview">${escHtml(h.text)}</div>`;
+
+      // 復元クリック（削除ボタン以外）
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.hist-del-btn')) return;
+        if (editor.value.trim()) pushHistory(editor.value);
+        editor.value = h.text;
+        localStorage.setItem(STORAGE_KEY, h.text);
+        updateCounter();
+        closeHist();
+        editor.focus();
+      });
+
+      // 個別削除ボタン
+      el.querySelector('.hist-del-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        showDeleteConfirm(h.ts, query);
+      });
+
+      histList.appendChild(el);
+    });
+  }
+
+  // ── 削除確認ダイアログ ──
+  function showDeleteConfirm(ts, currentQuery) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:200;
+      display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = `
+      <div style="
+        background:var(--surface);border:1px solid var(--border);
+        border-radius:14px;padding:24px 20px;max-width:280px;width:90%;
+        font-family:var(--font-body);text-align:center;
+      ">
+        <p style="font-size:15px;color:var(--text);margin-bottom:20px;">この履歴を削除しますか？</p>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button id="del-cancel" style="
+            flex:1;height:40px;border-radius:8px;
+            border:1px solid var(--border);
+            background:none;color:var(--muted);
+            font-family:var(--font-ui);font-size:12px;cursor:pointer;
+          ">キャンセル</button>
+          <button id="del-confirm" style="
+            flex:1;height:40px;border-radius:8px;
+            border:1px solid rgba(255,71,87,0.4);
+            background:rgba(255,71,87,0.12);color:var(--accent-clear);
+            font-family:var(--font-ui);font-size:12px;cursor:pointer;
+          ">削除</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#del-cancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#del-confirm').addEventListener('click', () => {
+      deleteHistory(ts);
+      overlay.remove();
+      renderHistList(currentQuery);
+      showToast('削除しました');
+    });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── トースト ──
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  // ── Service Worker 登録 ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
