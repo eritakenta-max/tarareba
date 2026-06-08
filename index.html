@@ -129,153 +129,372 @@ textarea,input{font-family:inherit;outline:none;-webkit-appearance:none}
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef} = React;
+const {useState,useEffect,useRef}=React;
 const CREAM='#FDF6E3',NAVY='#0F172A',YELLOW='#EAB308';
+const LS_KEY='tarareba_v1';
 const CATS=[
-  {id:'drinking',label:'飲み会',ico:'🍺'},{id:'eating',label:'外食',ico:'🍽️'},
-  {id:'entertain',label:'娯楽',ico:'🎰'},{id:'shopping',label:'買い物',ico:'🛒'},
-  {id:'transport',label:'交通費',ico:'🚕'},{id:'beauty',label:'美容',ico:'💄'},
-  {id:'cafe',label:'カフェ',ico:'☕'},{id:'other',label:'その他',ico:'📦'}
+  {id:'drinking',label:'飲み会',ico:'🍺'},
+  {id:'eating',label:'外食',ico:'🍽️'},
+  {id:'entertain',label:'娯楽',ico:'🎰'},
+  {id:'shopping',label:'買い物',ico:'🛒'},
+  {id:'transport',label:'交通費',ico:'🚕'},
+  {id:'beauty',label:'美容',ico:'💄'},
+  {id:'cafe',label:'カフェ',ico:'☕'},
+  {id:'other',label:'その他',ico:'📦'},
 ];
 const CAT_MAP=Object.fromEntries(CATS.map(c=>[c.id,c]));
 const REASONS=['付き合い・ノリ','誘惑に負けた','見栄（みえ）','なんとなく'];
 const PLANT_STAGES=[
-  {min:0,max:4,emo:'🫘',lv:'たね',msg:'まだ芽が出ていない...'},{min:5,max:9,emo:'🌱',lv:'発芽',msg:'小さな芽が顔を出した！'},
-  {min:10,max:14,emo:'🌿',lv:'小さな葉',msg:'双葉が開いてきた'},{min:15,max:19,emo:'🍃',lv:'若葉',msg:'葉っぱが増えてきた'},
-  {min:20,max:24,emo:'🪴',lv:'鉢植え',msg:'しっかり根付いてきた'},{min:25,max:29,emo:'🌵',lv:'成長中',msg:'たくましく育ってる！'},
-  {min:30,max:34,emo:'🌾',lv:'穂が出た',msg:'実りの予感がしてきました'},{min:35,max:39,emo:'🎋',lv:'竹のよう',msg:'すくすく伸びてる！'},
-  {min:40,max:44,emo:'🌲',lv:'針葉樹',msg:'大きな木になってきた'},{min:45,max:49,emo:'🌳',lv:'広葉樹',msg:'堂々とした木に成長'},
-  {min:50,max:54,emo:'🌴',lv:'南国の木',msg:'半分まで来た！すごい'},{min:55,max:59,emo:'🌸',lv:'開花前夜',msg:'もうすぐ花が咲きそう'},
-  {min:60,max:64,emo:'🌺',lv:'ハイビスカス',msg:'鮮やかに咲いた！'},{min:65,max:69,emo:'🌼',lv:'元気な花',msg:'キラキラ輝いてる'},
-  {min:70,max:74,emo:'🌻',lv:'ひまわり',msg:'太陽に向かって伸びてる'},{min:75,max:79,emo:'🌷',lv:'チューリップ',msg:'ゴールが近づいてきた'},
-  {min:80,max:84,emo:'🌹',lv:'バラ',msg:'誇り高く咲き誇る！'},{min:85,max:89,emo:'💐',lv:'花束',msg:'もう少しで達成！'},
-  {min:90,max:94,emo:'🪷',lv:'蓮の花',msg:'清らかに輝いている'},{min:95,max:99,emo:'🪻',lv:'開花直前！',msg:'あと少し...！頑張れ！'},
-  {min:100,max:9999,emo:'🌻',lv:'完全開花🎉',msg:'目標達成！おめでとう！'}
+  {min:0,max:4,emo:'🫘',lv:'たね',msg:'まだ芽が出ていない...'},
+  {min:5,max:9,emo:'🌱',lv:'発芽',msg:'小さな芽が顔を出した！'},
+  {min:10,max:14,emo:'🌿',lv:'小さな葉',msg:'双葉が開いてきた'},
+  {min:15,max:19,emo:'🍃',lv:'若葉',msg:'葉っぱが増えてきた'},
+  {min:20,max:24,emo:'🪴',lv:'鉢植え',msg:'しっかり根付いてきた'},
+  {min:25,max:29,emo:'🌵',lv:'成長中',msg:'たくましく育ってる！'},
+  {min:30,max:34,emo:'🌾',lv:'穂が出た',msg:'実りの予感がしてきた'},
+  {min:35,max:39,emo:'🎋',lv:'竹のよう',msg:'すくすく伸びてる！'},
+  {min:40,max:44,emo:'🌲',lv:'針葉樹',msg:'大きな木になってきた'},
+  {min:45,max:49,emo:'🌳',lv:'広葉樹',msg:'堂々とした木に成長'},
+  {min:50,max:54,emo:'🌴',lv:'南国の木',msg:'半分まで来た！すごい'},
+  {min:55,max:59,emo:'🌸',lv:'開花前夜',msg:'もうすぐ花が咲きそう'},
+  {min:60,max:64,emo:'🌺',lv:'ハイビスカス',msg:'鮮やかに咲いた！'},
+  {min:65,max:69,emo:'🌼',lv:'元気な花',msg:'キラキラ輝いてる'},
+  {min:70,max:74,emo:'🌻',lv:'ひまわり',msg:'太陽に向かって伸びてる'},
+  {min:75,max:79,emo:'🌷',lv:'チューリップ',msg:'ゴールが近づいてきた'},
+  {min:80,max:84,emo:'🌹',lv:'バラ',msg:'誇り高く咲き誇る！'},
+  {min:85,max:89,emo:'💐',lv:'花束',msg:'もう少しで達成！'},
+  {min:90,max:94,emo:'🪷',lv:'蓮の花',msg:'清らかに輝いている'},
+  {min:95,max:99,emo:'🪻',lv:'開花直前！',msg:'あと少し...！頑張れ！'},
+  {min:100,max:9999,emo:'🌻',lv:'完全開花🎉',msg:'目標達成！おめでとう！'},
 ];
-function getPlantStage(pct){return PLANT_STAGES.find(s=>pct>=s.min&&pct<=s.max)||PLANT_STAGES[0]}
+function getPlantStage(p){return PLANT_STAGES.find(s=>p>=s.min&&p<=s.max)||PLANT_STAGES[0];}
 function HeartChart({ratio}){
   const p=Math.round(ratio*100),rp=100-p;
   return(
     <div className="heart-area">
-      <svg viewBox="0 0 100 90" width="150" height="135">
-        <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset={p+'%'} stopColor={YELLOW}/><stop offset={p+'%'} stopColor={NAVY}/></linearGradient></defs>
+      <svg viewBox="0 0 100 90" width="150" height="135" style={{display:'block'}}>
+        <defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset={p+'%'} stopColor={YELLOW}/>
+          <stop offset={p+'%'} stopColor={NAVY}/>
+        </linearGradient></defs>
         <path d="M50 85 C50 85 5 55 5 30 C5 15 17 5 30 5 C38 5 45 10 50 17 C55 10 62 5 70 5 C83 5 95 15 95 30 C95 55 50 85 50 85Z" fill="url(#hg)"/>
       </svg>
-      <div className="heart-legend"><span style={{color:YELLOW}}>● 満足 {p}%</span><span style={{color:NAVY}}>● 後悔 {rp}%</span></div>
+      <div className="heart-legend">
+        <span style={{color:YELLOW}}>● 満足 {p}%</span>
+        <span style={{color:NAVY}}>● 後悔 {rp}%</span>
+      </div>
     </div>
-  )
+  );
 }
 function CountUp({target,decimals=1}){
   const [v,setV]=useState(0),t=useRef(null);
   useEffect(()=>{
     clearInterval(t.current);let cur=0;const step=target/48;
-    t.current=setInterval(()=>{cur+=step;if(cur>=target){setV(target);clearInterval(t.current)}else setV(+cur.toFixed(decimals))},22);
-    return()=>clearInterval(t.current)
+    t.current=setInterval(()=>{cur+=step;if(cur>=target){setV(target);clearInterval(t.current);}else setV(+cur.toFixed(decimals));},22);
+    return()=>clearInterval(t.current);
   },[target]);
-  return <span>{v.toFixed(decimals)}%</span>
+  return <span>{v.toFixed(decimals)}%</span>;
 }
 function PlantBox({pct,showBar=true}){
-  const s=getPlantStage(pct),barW=Math.min(100,pct);
+  const s=getPlantStage(pct),bw=Math.min(100,pct);
   return(
-    <div className="plant-box fade-up"><span className="plant-emoji">{s.emo}</span><div className="plant-lv">Lv. {s.lv}</div><div className="plant-pct">{s.msg}</div>
-      {showBar&&<div className="pbar-wrap" style={{marginTop:8}}><div className="pbar-fill" style={{width:barW+'%'}}></div></div>}
+    <div className="plant-box fade-up">
+      <span className="plant-emoji">{s.emo}</span>
+      <div className="plant-lv">Lv. {s.lv}</div>
+      <div className="plant-pct">{s.msg}</div>
+      {showBar&&<div className="pbar-wrap" style={{marginTop:8}}><div className="pbar-fill" style={{width:bw+'%'}}></div></div>}
     </div>
-  )function App(){
-  const [goal,setGoal]=useState(()=>{const s=localStorage.getItem('tarareba_goal');return s?JSON.parse(s):{name:'',amount:0}});
-  const [records,setRecords]=useState(()=>{const s=localStorage.getItem('tarareba_records');return s?JSON.parse(s):[]});
-  const [screen,setScreen]=useState(goal.name?'home':'setup');
-  const [goalIn,setGoalIn]=useState({name:'',amount:''});
-  const [emotion,setEmotion]=useState(null);const [category,setCategory]=useState(null);const [reason,setReason]=useState(null);
-  const [amtStr,setAmtStr]=useState('');const [memo,setMemo]=useState('');const [memoSaved,setMemoSaved]=useState(false);
-  const [pendingId,setPendingId]=useState(null);const nid=useRef(records.length>0?Math.max(...records.map(r=>r.id))+1:10);
-  useEffect(()=>{localStorage.setItem('tarareba_goal',JSON.stringify(goal))},[goal]);
-  useEffect(()=>{localStorage.setItem('tarareba_records',JSON.stringify(records))},[records]);
+  );
+}
+
+/* ─── LocalStorage helpers ─── */
+function lsLoad(){
+  try{
+    const d=localStorage.getItem(LS_KEY);
+    if(d)return JSON.parse(d);
+  }catch(e){}
+  return null;
+}
+function lsSave(data){
+  try{localStorage.setItem(LS_KEY,JSON.stringify(data));}catch(e){}
+}
+
+function App(){
+  /* LSからの初期値 */
+  const saved=lsLoad();
+  const hasGoal=saved&&saved.goal&&saved.goal.amount>0;
+
+  const [screen,setScreen]=useState(hasGoal?'home':'setup');
+  const [goal,setGoal]=useState(saved&&saved.goal?saved.goal:{name:'',amount:0});
+  const [goalIn,setGoalIn]=useState(saved&&saved.goal&&saved.goal.name?{name:saved.goal.name,amount:String(saved.goal.amount)}:{name:'',amount:''});
+  const [records,setRecords]=useState(saved&&saved.records?saved.records:[]);
+  const [emotion,setEmotion]=useState(null);
+  const [category,setCategory]=useState(null);
+  const [reason,setReason]=useState(null);
+  const [amtStr,setAmtStr]=useState('');
+  const [memo,setMemo]=useState('');
+  const [memoSaved,setMemoSaved]=useState(false);
+  const [pendingId,setPendingId]=useState(null);
+  const nid=useRef(saved&&saved.nid?saved.nid:10);
+
+  /* goal・records変更時にLS保存 */
+  useEffect(()=>{lsSave({goal,records,nid:nid.current});},[goal,records]);
+
   const satisfiedTotal=records.filter(r=>r.emotion==='satisfied').reduce((a,b)=>a+b.amount,0);
   const regretTotal=records.filter(r=>r.emotion==='regret').reduce((a,b)=>a+b.amount,0);
   const futureTotal=records.filter(r=>r.emotion==='future').reduce((a,b)=>a+b.amount,0);
-  const heartTotal=satisfiedTotal+regretTotal,satisfiedRatio=heartTotal>0?satisfiedTotal/heartTotal:0.5;
+  const heartTotal=satisfiedTotal+regretTotal;
+  const satisfiedRatio=heartTotal>0?satisfiedTotal/heartTotal:0.5;
   const achievePct=goal.amount>0?Math.min(999,(futureTotal/goal.amount)*100):0;
-  function doSetup(){if(!goalIn.name||!goalIn.amount)return;const g={name:goalIn.name,amount:parseInt(goalIn.amount)||0};setGoal(g);setScreen('home')}
-  function startFlow(em){setEmotion(em);setCategory(null);setReason(null);setAmtStr('');setMemo('');setMemoSaved(false);setPendingId(null);setScreen('category')}
-  function numpad(k){if(k==='DEL'){setAmtStr(a=>a.slice(0,-1));return}if(amtStr.length>=7)return;if(amtStr===''&&k==='0')return;setAmtStr(a=>a+k)}
-  function register(){
-    if(!amtStr)return;const id=nid.current++;const now=new Date();
-    const d=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
-    const r={id,emotion,category,amount:parseInt(amtStr),reason:emotion==='regret'?reason:null,memo:'',date:d};
-    setRecords(prev=>[...prev,r]);setPendingId(id);setMemo('');setMemoSaved(false);setScreen('complete');
+
+  function doSetup(){
+    if(!goalIn.name||!goalIn.amount)return;
+    const g={name:goalIn.name,amount:parseInt(goalIn.amount)||0};
+    setGoal(g);setScreen('home');
   }
-  function saveMemo(){if(pendingId===null)return;setRecords(r=>r.map(rec=>rec.id===pendingId?{...rec,memo}:rec));setMemoSaved(true)}
+  function startFlow(em){
+    setEmotion(em);setCategory(null);setReason(null);setAmtStr('');setMemo('');setMemoSaved(false);setPendingId(null);setScreen('category');
+  }
+  function numpad(k){
+    if(k==='DEL'){setAmtStr(a=>a.slice(0,-1));return;}
+    if(amtStr.length>=7)return;
+    if(amtStr===''&&k==='0')return;
+    setAmtStr(a=>a+k);
+  }
+  function register(){
+    if(!amtStr)return;
+    const id=nid.current++;
+    const now=new Date();
+    const date=`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+    const rec={id,emotion,category,amount:parseInt(amtStr),reason:emotion==='regret'?reason:null,memo:'',date};
+    setRecords(r=>{const nr=[...r,rec];lsSave({goal,records:nr,nid:nid.current});return nr;});
+    setPendingId(id);setMemo('');setMemoSaved(false);setScreen('complete');
+  }
+  function saveMemo(){
+    if(pendingId===null)return;
+    setRecords(r=>{const nr=r.map(rec=>rec.id===pendingId?{...rec,memo}:rec);lsSave({goal,records:nr,nid:nid.current});return nr;});
+    setMemoSaved(true);
+  }
   function resetAll(){
     if(!window.confirm('すべてのデータをリセットしますか？\n（この操作は元に戻せません）'))return;
-    localStorage.removeItem('tarareba_goal');localStorage.removeItem('tarareba_records');
-    setRecords([]);setGoal({name:'',amount:0});setGoalIn({name:'',amount:''});startFlow(null);setScreen('setup');
+    localStorage.removeItem(LS_KEY);
+    setRecords([]);setGoal({name:'',amount:0});setGoalIn({name:'',amount:''});
+    setEmotion(null);setCategory(null);setReason(null);setAmtStr('');setMemo('');
+    setMemoSaved(false);setPendingId(null);nid.current=10;setScreen('setup');
   }
-  function home(){setEmotion(null);setCategory(null);setReason(null);setAmtStr('');setMemo('');setMemoSaved(false);setPendingId(null);setScreen('home')}
-  const amtNum=amtStr?parseInt(amtStr):0,catObj=CAT_MAP[category]||null;
-  return (
+  function home(){setEmotion(null);setCategory(null);setReason(null);setAmtStr('');setMemo('');setMemoSaved(false);setPendingId(null);setScreen('home');}
+
+  const amtNum=amtStr?parseInt(amtStr):0;
+  const catObj=CAT_MAP[category]||null;
+
+  return(
     <div className="shell">
       {screen==='setup'&&(
-        <div className="screen fade-up"><div className="setup-body"><div className="setup-emoji">🎯</div><div><p className="setup-h">目標を設定しよう</p><p className="setup-p" style={{marginTop:8}}>達成したい夢を入力してください。<br/>後悔を我慢に、我慢を未来に変える旅が始まります。</p></div>
-          <div className="f-group"><label className="f-label">目標の名前</label><input className="f-input" type="text" placeholder="例：開業資金、旅行、新車..." value={goalIn.name} onChange={e=>setGoalIn(g=>({...g,name:e.target.value}))}/></div>
-          <div className="f-group"><label className="f-label">目標金額（円）</label><input className="f-input" type="number" inputMode="numeric" placeholder="例：1000000" value={goalIn.amount} onChange={e=>setGoalIn(g=>({...g,amount:e.target.value}))}/>{goalIn.amount&&<span className="f-hint">¥{parseInt(goalIn.amount||0).toLocaleString()}</span>}</div>
-          <button className="btn-primary" onClick={doSetup} disabled={!goalIn.name||!goalIn.amount}>タラレバを始める 🚀</button></div></div>
+        <div className="screen fade-up">
+          <div className="setup-body">
+            <div className="setup-emoji">🎯</div>
+            <div>
+              <p className="setup-h">目標を設定しよう</p>
+              <p className="setup-p" style={{marginTop:8}}>達成したい夢を入力してください。<br/>後悔を我慢に、我慢を未来に変える旅が始まります。</p>
+            </div>
+            <div className="f-group">
+              <label className="f-label">目標の名前</label>
+              <input className="f-input" type="text" placeholder="例：開業資金、旅行、新車..."
+                value={goalIn.name} onChange={e=>setGoalIn(g=>({...g,name:e.target.value}))}/>
+            </div>
+            <div className="f-group">
+              <label className="f-label">目標金額（円）</label>
+              <input className="f-input" type="number" inputMode="numeric" placeholder="例：1000000"
+                value={goalIn.amount} onChange={e=>setGoalIn(g=>({...g,amount:e.target.value}))}/>
+              {goalIn.amount&&<span className="f-hint">¥{parseInt(goalIn.amount||0).toLocaleString()}</span>}
+            </div>
+            <button className="btn-primary" onClick={doSetup} disabled={!goalIn.name||!goalIn.amount}>タラレバを始める 🚀</button>
+          </div>
+        </div>
       )}
       {screen==='home'&&(
-        <div className="screen fade-up"><div className="home-body"><div className="home-topbar"><span style={{fontSize:20,fontWeight:900,color:NAVY}}>タラレバ</span><button className="pill-btn" onClick={()=>setScreen('report')}>📊 レポート</button></div>
-          <div style={{textAlign:'center',width:'100%',padding:'0 20px'}}><PlantBox pct={achievePct} showBar={true}/>{goal.name&&<div className="goal-chip" style={{marginTop:10,display:'inline-block'}}>🎯 {goal.name}：¥{goal.amount.toLocaleString()} | 達成率 {achievePct.toFixed(1)}%</div>}</div>
-          <div className="question-card" style={{width:'100%'}}><h2>今日のあなたのお金は？</h2><p>使った気持ち、使わなかった選択をワンタップ。</p></div>
-          <div className="emotion-grid" style={{width:'100%'}}>
-            <button className="ebtn" style={{background:YELLOW}} onClick={()=>startFlow('satisfied')}><span className="eico">😊</span><span className="elbl" style={{color:NAVY}}>満足</span><span className="esub" style={{color:NAVY}}>いいお金の<br/>遣い方ができた！</span></button>
-            <button className="ebtn" style={{background:'#16a34a'}} onClick={()=>startFlow('future')}><span className="eico">🌱</span><span className="elbl" style={{color:'#fff'}}>未来</span><span className="esub" style={{color:'#fff'}}>我慢したお金は<br/>未来の自分へ</span></button>
-            <button className="ebtn" style={{background:NAVY}} onClick={()=>startFlow('regret')}><span className="eico">😟</span><span className="elbl" style={{color:'#fff'}}>後悔</span><span className="esub" style={{color:'#fff'}}>やってしまった...</span></button>
-          </div><p className="home-hint">😊 🌱 😟 をワンタップ</p></div></div>
+        <div className="screen fade-up">
+          <div className="home-body">
+            <div className="home-topbar">
+              <span style={{fontSize:20,fontWeight:900,color:NAVY}}>タラレバ</span>
+              <button className="pill-btn" onClick={()=>setScreen('report')}>📊 レポート</button>
+            </div>
+            <div style={{textAlign:'center',width:'100%',padding:'0 20px'}}>
+              <PlantBox pct={achievePct} showBar={true}/>
+              {goal.name&&(
+                <div className="goal-chip" style={{marginTop:10,display:'inline-block'}}>
+                  🎯 {goal.name}：¥{goal.amount.toLocaleString()} | 達成率 {achievePct.toFixed(1)}%
+                </div>
+              )}
+            </div>
+            <div className="question-card" style={{width:'100%'}}>
+              <h2>今日のあなたのお金は？</h2>
+              <p>使った気持ち、使わなかった選択をワンタップ。</p>
+            </div>
+            <div className="emotion-grid" style={{width:'100%'}}>
+              <button className="ebtn" style={{background:YELLOW}} onClick={()=>startFlow('satisfied')}>
+                <span className="eico">😊</span>
+                <span className="elbl" style={{color:NAVY}}>満足</span>
+                <span className="esub" style={{color:NAVY}}>いいお金の<br/>遣い方ができた！</span>
+              </button>
+              <button className="ebtn" style={{background:'#16a34a'}} onClick={()=>startFlow('future')}>
+                <span className="eico">🌱</span>
+                <span className="elbl" style={{color:'#fff'}}>未来</span>
+                <span className="esub" style={{color:'#fff'}}>我慢したお金は<br/>未来の自分へ</span>
+              </button>
+              <button className="ebtn" style={{background:NAVY}} onClick={()=>startFlow('regret')}>
+                <span className="eico">😟</span>
+                <span className="elbl" style={{color:'#fff'}}>後悔</span>
+                <span className="esub" style={{color:'#fff'}}>やってしまった...</span>
+              </button>
+            </div>
+            <p className="home-hint">😊 🌱 😟 をワンタップ</p>
+          </div>
+        </div>
       )}
       {screen==='category'&&(
-        <div className="screen fade-up"><div className="inner"><button className="back-btn" onClick={home}>＜ 戻る</button><p className="scr-h">何に{emotion==='future'?'使わなかった？':'使った？'}</p><p className="scr-sub">カテゴリを選んでください</p>
-          <div className="cat-grid">{CATS.map(c=>(<button key={c.id} className={'cat-btn'+(category===c.id?' sel':'')} onClick={()=>{setCategory(c.id);if(emotion==='regret')setScreen('reason');else setScreen('amount')}}><span className="cat-ico">{c.ico}</span><span className="cat-lbl">{c.label}</span></button>))}</div></div></div>
+        <div className="screen fade-up">
+          <div className="inner">
+            <button className="back-btn" onClick={home}>＜ 戻る</button>
+            <p className="scr-h">何に{emotion==='future'?'使わなかった？':'使った？'}</p>
+            <p className="scr-sub">カテゴリを選んでください</p>
+            <div className="cat-grid">
+              {CATS.map(c=>(
+                <button key={c.id} className={'cat-btn'+(category===c.id?' sel':'')}
+                  onClick={()=>{setCategory(c.id);if(emotion==='regret')setScreen('reason');else setScreen('amount');}}>
+                  <span className="cat-ico">{c.ico}</span>
+                  <span className="cat-lbl">{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       {screen==='reason'&&(
-        <div className="screen fade-up"><div className="inner"><button className="back-btn" onClick={()=>setScreen('category')}>＜ 戻る</button><p className="scr-h">なぜ後悔してる？</p><p className="scr-sub">正直に選んでみてください</p>
-          <div className="reason-list">{REASONS.map(r=>(<button key={r} className={'rbtn'+(reason===r?' sel':'')} onClick={()=>{setReason(r);setScreen('amount')}}>{r}</button>))}</div></div></div>
+        <div className="screen fade-up">
+          <div className="inner">
+            <button className="back-btn" onClick={()=>setScreen('category')}>＜ 戻る</button>
+            <p className="scr-h">なぜ後悔してる？</p>
+            <p className="scr-sub">正直に選んでみてください</p>
+            <div className="reason-list">
+              {REASONS.map(r=>(
+                <button key={r} className={'rbtn'+(reason===r?' sel':'')}
+                  onClick={()=>{setReason(r);setScreen('amount');}}>
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
       {screen==='amount'&&(
-        <div className="screen amt-screen fade-up"><button className="amt-back" onClick={()=>setScreen(emotion==='regret'?'reason':'category')}>＜ 戻る</button><div className="amt-tag">{catObj&&<span>{catObj.ico} {catObj.label}</span>}{reason&&<span> ・ {reason}</span>}{emotion==='future'&&<span> ・ 我慢した金額</span>}</div>
+        <div className="screen amt-screen fade-up">
+          <button className="amt-back" onClick={()=>setScreen(emotion==='regret'?'reason':'category')}>＜ 戻る</button>
+          <div className="amt-tag">
+            {catObj&&<span>{catObj.ico} {catObj.label}</span>}
+            {reason&&<span> ・ {reason}</span>}
+            {emotion==='future'&&<span> ・ 我慢した金額</span>}
+          </div>
           <div className="amt-display"><span className="amt-num">¥ {amtNum.toLocaleString()}</span></div>
-          <div className="numpad"><div className="nrow">{['1','2','3'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div><div className="nrow">{['4','5','6'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div><div className="nrow">{['7','8','9'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div><div className="nrow"><button className="nkey kdel" onClick={()=>numpad('DEL')}>⌫</button><button className="nkey" onClick={()=>numpad('0')}>0</button><div className="nkey kempty"></div></div></div>
-          <button className="ok-btn" onClick={register} disabled={!amtStr}>OK</button></div>
+          <div className="numpad">
+            <div className="nrow">{['1','2','3'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div>
+            <div className="nrow">{['4','5','6'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div>
+            <div className="nrow">{['7','8','9'].map(k=><button key={k} className="nkey" onClick={()=>numpad(k)}>{k}</button>)}</div>
+            <div className="nrow">
+              <button className="nkey kdel" onClick={()=>numpad('DEL')}>⌫</button>
+              <button className="nkey" onClick={()=>numpad('0')}>0</button>
+              <div className="nkey kempty"></div>
+            </div>
+          </div>
+          <button className="ok-btn" onClick={register} disabled={!amtStr}>OK</button>
+        </div>
       )}
       {screen==='complete'&&(
-        <div className="screen fade-up"><div className="cpl-body"><div className="cpl-ico">{emotion==='satisfied'?'🌟':emotion==='future'?'🌱':'📝'}</div><div><p className="cpl-h">{emotion==='satisfied'?'いい使い方でした！':emotion==='future'?'我慢！未来に貯金！':'記録しました'}</p><p className="cpl-sub">¥{amtNum.toLocaleString()} を登録{catObj&&<span>（{catObj.ico}{catObj.label}）</span>}</p></div>
-          {emotion==='future'&&(
-            <div className="ach-card" style={{width:'100%'}}><p className="ach-goalname">{goal.name||'目標'} 達成率</p><p className="ach-big"><CountUp target={achievePct}/></p><div className="pbar-wrap" style={{marginTop:8}}><div className="pbar-fill" style={{width:Math.min(100,achievePct)+'%'}}></div></div><div style={{marginTop:12}}><PlantBox pct={achievePct} showBar={false}/></div></div>
-          )}
-          <div className="memo-card" style={{width:'100%'}}><p className="memo-lbl">📮 未来の自分にタラレバを伝えよう</p><textarea className="memo-ta" rows={3} placeholder={`例：この¥${amtNum.toLocaleString()}があれば...`} value={memo} onChange={e=>setMemo(e.target.value)} disabled={memoSaved}/>{memoSaved?<p className="memo-saved">✅ メモを保存しました！</p>:<button className="btn-navy" onClick={saveMemo}>💾 メモを登録する</button>}</div>
-          <button className="home-btn" style={{width:'100%'}} onClick={home}>ホームに戻る</button></div></div>
+        <div className="screen fade-up">
+          <div className="cpl-body">
+            <div className="cpl-ico">{emotion==='satisfied'?'🌟':emotion==='future'?'🌱':'📝'}</div>
+            <div>
+              <p className="cpl-h">{emotion==='satisfied'?'いい使い方でした！':emotion==='future'?'我慢！未来に貯金！':'記録しました'}</p>
+              <p className="cpl-sub">¥{amtNum.toLocaleString()} を登録{catObj&&<span>（{catObj.ico}{catObj.label}）</span>}</p>
+            </div>
+            {emotion==='future'&&(
+              <div className="ach-card" style={{width:'100%'}}>
+                <p className="ach-goalname">{goal.name||'目標'} 達成率</p>
+                <p className="ach-big"><CountUp target={achievePct}/></p>
+                <div className="pbar-wrap" style={{marginTop:8}}><div className="pbar-fill" style={{width:Math.min(100,achievePct)+'%'}}></div></div>
+                <div style={{marginTop:12}}><PlantBox pct={achievePct} showBar={false}/></div>
+              </div>
+            )}
+            <div className="memo-card" style={{width:'100%'}}>
+              <p className="memo-lbl">📮 未来の自分にタラレバを伝えよう</p>
+              <textarea className="memo-ta" rows={3}
+                placeholder={`例：この¥${amtNum.toLocaleString()}があれば...`}
+                value={memo} onChange={e=>setMemo(e.target.value)}
+                disabled={memoSaved}/>
+              {memoSaved
+                ?<p className="memo-saved">✅ メモを保存しました！</p>
+                :<button className="btn-navy" onClick={saveMemo}>💾 メモを登録する</button>
+              }
+            </div>
+            <button className="home-btn" style={{width:'100%'}} onClick={home}>ホームに戻る</button>
+          </div>
+        </div>
       )}
       {screen==='report'&&(
-        <div className="screen fade-up"><div className="rep-body"><div className="rep-hdr"><button className="back-btn" style={{margin:0}} onClick={home}>＜ 戻る</button><span style={{fontSize:16,fontWeight:900,color:NAVY}}>レポート</span><div style={{width:48}}></div></div>
-          <div style={{background:'#fff8e8',borderRadius:22,padding:18,border:'2px solid rgba(234,179,8,.2)',marginBottom:14,textAlign:'center'}}><PlantBox pct={achievePct} showBar={true}/>{goal.name&&<p style={{fontSize:12,color:'#94a3b8',marginTop:8}}>🎯 {goal.name} ¥{goal.amount.toLocaleString()} | 我慢総額 ¥{futureTotal.toLocaleString()} | <strong style={{color:NAVY}}>{achievePct.toFixed(1)}%達成</strong></p>}</div>
-          <p className="rep-h">今月の感情バランス</p><HeartChart ratio={satisfiedRatio}/>
-          <div className="sum-card">
-            <div className="sum-row"><span>😊 満足総額</span><span style={{color:YELLOW}}>¥{satisfiedTotal.toLocaleString()}</span></div>
-            <div className="sum-row"><span>🌱 我慢総額</span><span style={{color:'#22c55e'}}>¥{futureTotal.toLocaleString()}</span></div>
-            <div className="sum-row"><span>😟 後悔総額</span><span style={{color:NAVY}}>¥{regretTotal.toLocaleString()}</span></div>
-            <div className="sum-row"><span style={{fontWeight:700}}>合計</span><span>¥{(satisfiedTotal+futureTotal+regretTotal).toLocaleString()}</span></div>
+        <div className="screen fade-up">
+          <div className="rep-body">
+            <div className="rep-hdr">
+              <button className="back-btn" style={{margin:0}} onClick={home}>＜ 戻る</button>
+              <span style={{fontSize:16,fontWeight:900,color:NAVY}}>レポート</span>
+              <div style={{width:48}}></div>
+            </div>
+            <div style={{background:'#fff8e8',borderRadius:22,padding:18,border:'2px solid rgba(234,179,8,.2)',marginBottom:14,textAlign:'center'}}>
+              <PlantBox pct={achievePct} showBar={true}/>
+              {goal.name&&(
+                <p style={{fontSize:12,color:'#94a3b8',marginTop:8}}>
+                  🎯 {goal.name} ¥{goal.amount.toLocaleString()} | 我慢総額 ¥{futureTotal.toLocaleString()} | <strong style={{color:NAVY}}>{achievePct.toFixed(1)}%達成</strong>
+                </p>
+              )}
+            </div>
+            <p className="rep-h">今月の感情バランス</p>
+            <HeartChart ratio={satisfiedRatio}/>
+            <div className="sum-card">
+              <div className="sum-row"><span>😊 満足総額</span><span style={{color:YELLOW}}>¥{satisfiedTotal.toLocaleString()}</span></div>
+              <div className="sum-row"><span>🌱 我慢総額</span><span style={{color:'#22c55e'}}>¥{futureTotal.toLocaleString()}</span></div>
+              <div className="sum-row"><span>😟 後悔総額</span><span style={{color:NAVY}}>¥{regretTotal.toLocaleString()}</span></div>
+              <div className="sum-row"><span style={{fontWeight:700}}>合計</span><span>¥{(satisfiedTotal+futureTotal+regretTotal).toLocaleString()}</span></div>
+            </div>
+            <p className="hist-h">📋 登録履歴（{records.length}件）</p>
+            <div className="hist-list">
+              {records.length===0&&<div className="empty-msg">まだ記録がありません</div>}
+              {[...records].reverse().map(rec=>{
+                const cat=CAT_MAP[rec.category]||null;
+                const ec={satisfied:YELLOW,future:'#22c55e',regret:NAVY}[rec.emotion]||NAVY;
+                const el={satisfied:'😊 満足',future:'🌱 我慢',regret:'😟 後悔'}[rec.emotion]||rec.emotion;
+                return(
+                  <div key={rec.id} className="hitem">
+                    <div className="hitem-top">
+                      <div className="hbadge"><span style={{color:ec}}>{el}</span></div>
+                      <span className="hamt" style={{color:ec}}>¥{rec.amount.toLocaleString()}</span>
+                    </div>
+                    <div className="hmeta">
+                      {cat&&<span>{cat.ico} {cat.label}</span>}
+                      {rec.reason&&<span>💭 {rec.reason}</span>}
+                      <span>📅 {rec.date}</span>
+                    </div>
+                    {rec.memo&&<div className="hmemo">📮 {rec.memo}</div>}
+                  </div>
+                );
+              })}
+            </div>
+            <button className="reset-btn" onClick={resetAll}>🗑️ すべてのデータをリセット</button>
           </div>
-          <p className="hist-h">📋 登録履歴（{records.length}件）</p>
-          <div className="hist-list">{records.length===0&&<div className="empty-msg">まだ記録がありません</div>}
-            {[...records].reverse().map(rec=>{
-              const cat=CAT_MAP[rec.category]||null,ec={satisfied:YELLOW,future:'#22c55e',regret:NAVY}[rec.emotion]||NAVY,el={satisfied:'😊 満足',future:'🌱 我慢',regret:'😟 後悔'}[rec.emotion]||rec.emotion;
-              return(<div key={rec.id} className="hitem"><div className="hitem-top"><div className="hbadge"><span style={{color:ec}}>{el}</span></div><span className="hamt" style={{color:ec}}>¥{rec.amount.toLocaleString()}</span></div><div className="hmeta">{cat&&<span>{cat.ico} {cat.label}</span>}{rec.reason&&<span>💭 {rec.reason}</span>}<span>📅 {rec.date}</span></div>{rec.memo&&<div className="hmemo">📮 {rec.memo}</div>}</div>)
-            })}
-          </div><button className="reset-btn" onClick={resetAll}>🗑️ すべてのデータをリセット</button></div></div>
+        </div>
       )}
     </div>
-  )
+  );
 }
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
-
-}
